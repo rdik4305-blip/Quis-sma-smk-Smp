@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Quiz: Komunitas Pelajar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+        }
+        .option-btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .option-btn:hover:not(:disabled) {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: #6366f1;
+            transform: scale(1.02);
+        }
+        .correct { background: #10b981 !important; color: white; border-color: #059669; }
+        .wrong { background: #ef4444 !important; color: white; border-color: #dc2626; opacity: 0.8; }
+        
+        /* Efek Level Tinggi */
+        .level-god {
+            background: linear-gradient(to right, #fbbf24, #f59e0b, #ef4444);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: pulse-glow 2s infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { filter: drop-shadow(0 0 2px #f59e0b); }
+            50% { filter: drop-shadow(0 0 10px #fbbf24); }
+        }
+
+        .gold-rank {
+            background: linear-gradient(45deg, #ffd700, #ff8c00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+        .shake { animation: shake 0.5s both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+        #leaderboard-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        #leaderboard-list::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.3);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center p-4">
+
+    <!-- Modal Profil -->
+    <div id="name-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 p-4 hidden">
+        <div class="glass-card p-8 w-full max-w-md text-center">
+            <h2 class="text-2xl font-bold mb-2">Pendaftaran Anggota</h2>
+            <p class="text-slate-400 mb-6 text-sm">Siap memulai perjalanan level tak terbatas?</p>
+            
+            <div class="flex flex-col items-center mb-6">
+                <div class="relative group">
+                    <div class="h-24 w-24 rounded-full bg-slate-800 flex items-center justify-center text-4xl shadow-xl border-4 border-indigo-500/30 overflow-hidden" id="preview-avatar-container">
+                        <span id="preview-placeholder">👤</span>
+                        <img id="preview-img" class="hidden w-full h-full object-cover">
+                    </div>
+                    <label for="file-upload" class="absolute bottom-0 right-0 bg-indigo-600 p-2 rounded-full cursor-pointer hover:bg-indigo-500 transition shadow-lg border-2 border-slate-900">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" />
+                        </svg>
+                    </label>
+                    <input type="file" id="file-upload" class="hidden" accept="image/*">
+                </div>
+                <p class="text-[10px] text-slate-500 mt-2 uppercase font-bold tracking-widest">Klik + untuk pasang foto</p>
+            </div>
+
+            <input type="text" id="user-name-input" placeholder="Nama kerenmu..." class="w-full bg-slate-800 border border-slate-700 p-4 rounded-xl mb-6 text-center outline-none focus:border-indigo-500">
+            <button id="start-btn" class="w-full py-4 bg-indigo-600 rounded-xl font-bold hover:bg-indigo-500 transition shadow-lg shadow-indigo-500/20">MASUK KE ARENA</button>
+        </div>
+    </div>
+
+    <!-- Header Stats -->
+    <div class="w-full max-w-2xl flex justify-between items-center mb-6 bg-slate-800/50 p-4 rounded-2xl border border-white/5">
+        <div class="flex items-center gap-3">
+            <div class="relative">
+                <div class="h-12 w-12 rounded-full bg-slate-700 flex items-center justify-center text-2xl shadow-lg border-2 border-indigo-500/30 overflow-hidden" id="header-avatar-container">
+                    <span id="header-placeholder">👤</span>
+                    <img id="header-img" class="hidden w-full h-full object-cover">
+                </div>
+                <div class="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-amber-500 flex items-center justify-center font-bold text-[10px] text-slate-900 border-2 border-slate-800" id="level-display">1</div>
+            </div>
+            <div>
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider" id="display-user-name">Memuat...</p>
+                <p class="text-[10px] font-black text-indigo-400 uppercase tracking-widest" id="rank-title">PELAJAR PEMULA</p>
+                <p class="text-xs font-semibold text-amber-400 mt-0.5"><span id="followers-count">0</span> Followers</p>
+            </div>
+        </div>
+        <div class="text-right">
+            <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Total XP</p>
+            <p class="text-xl font-bold text-indigo-400" id="xp-display">0</p>
+        </div>
+    </div>
+
+    <div id="app" class="w-full max-w-2xl glass-card p-6 md:p-10">
+        <!-- Main Menu -->
+        <div id="menu-screen">
+            <h1 class="text-4xl font-black text-center mb-2 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400 uppercase">Master Quiz</h1>
+            
+            <div class="flex justify-center gap-4 mb-8">
+                <button onclick="openLeaderboard()" class="text-xs bg-slate-700 px-5 py-2.5 rounded-full font-bold hover:bg-slate-600 border border-white/5 flex items-center gap-2">🏆 <span>Daftar Anggota</span></button>
+                <button onclick="openShop()" class="text-xs bg-indigo-600 px-5 py-2.5 rounded-full font-bold hover:bg-indigo-500 border border-indigo-400/20">🛒 Toko Followers</button>
+            </div>
+            
+            <div class="space-y-6">
+                <div class="bg-slate-900/50 p-4 rounded-xl border border-white/5 text-center">
+                    <label class="block text-[10px] font-black text-indigo-300 mb-3 uppercase tracking-[0.2em]">Pilih Jenjang Sekolah</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <button onclick="setGrade('SMP')" id="btn-smp" class="py-3 rounded-xl font-bold border-2 border-indigo-500 bg-indigo-500/20 text-white shadow-lg shadow-indigo-500/10">SMP</button>
+                        <button onclick="setGrade('SMA')" id="btn-sma" class="py-3 rounded-xl font-bold border-2 border-slate-700 bg-transparent text-slate-400">SMA/SMK</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <button onclick="startQuiz('matematika')" class="py-6 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-transform hover:-translate-y-1 shadow-lg shadow-blue-500/20 text-sm">MATEMATIKA 📐</button>
+                    <button onclick="startQuiz('sains')" class="py-6 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold transition-transform hover:-translate-y-1 shadow-lg shadow-emerald-500/20 text-sm">SAINS 🧪</button>
+                    <button onclick="startQuiz('umum')" class="py-6 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl font-bold transition-transform hover:-translate-y-1 shadow-lg shadow-rose-500/20 text-sm">UMUM 🏛️</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard (Daftar Anggota) -->
+        <div id="leaderboard-screen" class="hidden">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-black text-amber-400 uppercase tracking-wider">Top Global</h2>
+                <div class="text-right">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">Anggota Aktif</p>
+                    <p class="text-sm font-bold text-white" id="member-count-display">0</p>
+                </div>
+            </div>
+            <div class="space-y-3 mb-8 max-h-[450px] overflow-y-auto pr-2" id="leaderboard-list">
+                <!-- List will be filled by JS -->
+            </div>
+            <button onclick="resetApp()" class="w-full py-4 bg-slate-700 rounded-xl font-bold text-white hover:bg-slate-600 transition">KEMBALI KE MENU</button>
+        </div>
+
+        <!-- Shop -->
+        <div id="shop-screen" class="hidden">
+            <h2 class="text-2xl font-black text-center mb-6 text-indigo-400 uppercase tracking-wider">Upgrade Populeritas</h2>
+            <div class="space-y-4 mb-8">
+                <div class="bg-slate-900/50 p-5 rounded-xl flex justify-between items-center border border-white/5">
+                    <div>
+                        <p class="font-bold text-white">Paket Micro</p>
+                        <p class="text-xs text-indigo-300 font-bold tracking-widest">+10 FOLLOWERS</p>
+                        <p class="text-[10px] text-slate-500 mt-1">Biaya: 100 XP</p>
+                    </div>
+                    <button onclick="buyFollowers(10, 100)" class="bg-green-600 py-2.5 px-6 rounded-lg font-bold hover:bg-green-500 transition text-sm">TUKAR</button>
+                </div>
+                <div class="bg-slate-900/50 p-5 rounded-xl flex justify-between items-center border border-white/5">
+                    <div>
+                        <p class="font-bold text-white">Paket Viral</p>
+                        <p class="text-xs text-indigo-300 font-bold tracking-widest">+200 FOLLOWERS</p>
+                        <p class="text-[10px] text-slate-500 mt-1">Biaya: 1.500 XP</p>
+                    </div>
+                    <button onclick="buyFollowers(200, 1500)" class="bg-green-600 py-2.5 px-6 rounded-lg font-bold hover:bg-green-500 transition text-sm">TUKAR</button>
+                </div>
+            </div>
+            <button onclick="resetApp()" class="w-full py-4 bg-slate-700 rounded-xl font-bold text-white">KEMBALI</button>
+        </div>
+
+        <!-- Quiz Screen -->
+        <div id="quiz-screen" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <span id="quiz-info" class="px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-black border border-indigo-500/30 uppercase">SMP</span>
+                <span id="progress-text" class="text-[10px] text-slate-400 font-black uppercase">SOAL: 1/5</span>
+            </div>
+            <div class="w-full bg-slate-800 h-2 rounded-full mb-8 overflow-hidden">
+                <div id="progress-bar" class="bg-gradient-to-r from-indigo-500 to-purple-500 h-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <h2 id="question-text" class="text-xl md:text-2xl font-bold text-white mb-8 leading-relaxed">...</h2>
+            <div id="options-container" class="grid grid-cols-1 gap-4"></div>
+            <div id="feedback" class="mt-8 p-4 rounded-xl text-center font-bold text-lg hidden"></div>
+            <button id="next-btn" class="hidden w-full mt-8 py-4 bg-indigo-600 text-white rounded-2xl font-black text-lg hover:bg-indigo-500 transition">LANJUTKAN →</button>
+            <button id="fail-btn" class="hidden w-full mt-8 py-4 bg-rose-600 text-white rounded-2xl font-black text-lg">GUGUR: MULAI LAGI 🔄</button>
+        </div>
+
+        <!-- Result Screen -->
+        <div id="result-screen" class="hidden text-center">
+            <h2 class="text-3xl font-black text-white mb-2 uppercase">Misi Berhasil!</h2>
+            <p class="text-slate-400 mb-8">Kamu menjawab semua soal dengan sempurna.</p>
+            <div class="bg-slate-900/50 p-8 rounded-2xl mb-8 border border-white/5">
+                <p class="text-slate-400 mb-1 font-bold text-xs uppercase tracking-widest">XP Diperoleh</p>
+                <p id="session-xp" class="text-6xl font-black text-indigo-400 mb-4">+0</p>
+            </div>
+            <button onclick="resetApp()" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-black">KE MENU UTAMA</button>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 hidden flex flex-col items-center z-50">
+        <div class="bg-indigo-600 text-white px-8 py-4 rounded-full font-bold shadow-2xl border border-indigo-400/30">
+            <span id="toast-msg">Notifikasi</span>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'master-quiz-v5';
+
+        const quizData = {
+            SMP: {
+                matematika: [
+                    { q: "Berapakah hasil dari 12 x 8 - 40?", a: ["48", "56", "64", "96"], c: 1 },
+                    { q: "Suhu 20°C sama dengan berapa °F?", a: ["60", "64", "68", "72"], c: 2 },
+                    { q: "FPB dari 24 dan 36 adalah...", a: ["6", "12", "18", "24"], c: 1 },
+                    { q: "Akar pangkat tiga dari 1.331 adalah...", a: ["9", "11", "13", "15"], c: 1 },
+                    { q: "Keliling persegi yang luasnya 64 cm² adalah...", a: ["24 cm", "28 cm", "32 cm", "36 cm"], c: 2 }
+                ],
+                sains: [
+                    { q: "Organ pencernaan yang berfungsi menyerap air adalah...", a: ["Lambung", "Usus Halus", "Usus Besar", "Esofagus"], c: 2 },
+                    { q: "Planet yang tidak memiliki satelit alami adalah...", a: ["Mars", "Bumi", "Venus", "Jupiter"], c: 2 },
+                    { q: "Perubahan wujud dari cair ke gas disebut...", a: ["Membeku", "Menguap", "Mencair", "Menyublim"], c: 1 },
+                    { q: "Satuan Internasional untuk gaya adalah...", a: ["Joule", "Watt", "Newton", "Pascal"], c: 2 }
+                ],
+                umum: [
+                    { q: "Siapa penemu lampu pijar?", a: ["Newton", "Einstein", "Edison", "Tesla"], c: 2 },
+                    { q: "Negara Gajah Putih adalah julukan untuk...", a: ["Laos", "Thailand", "Vietnam", "India"], c: 1 }
+                ]
+            },
+            SMA: {
+                matematika: [
+                    { q: "Nilai dari sin 30° adalah...", a: ["0", "1/2", "1/2√2", "1"], c: 1 },
+                    { q: "Berapakah nilai dari log 1000?", a: ["1", "2", "3", "10"], c: 2 }
+                ],
+                sains: [
+                    { q: "Hukum II Newton menyatakan bahwa F sama dengan...", a: ["m/a", "m x a", "v/t", "m x v"], c: 1 }
+                ],
+                umum: [
+                    { q: "Organisasi ASEAN didirikan di kota...", a: ["Jakarta", "Bangkok", "Manila", "Kuala Lumpur"], c: 1 }
+                ]
+            }
+        };
+
+        // Perbanyak Bot Anggota untuk meramaikan daftar global
+        const bots = [
+            { name: "Rafli_99", followers: 42000, avatar: "", xp: 125000 },
+            { name: "Siti_Pro", followers: 31000, avatar: "", xp: 95000 },
+            { name: "Zidan_Legend", followers: 28500, avatar: "", xp: 82000 },
+            { name: "Anisa_Sains", followers: 15200, avatar: "", xp: 45000 },
+            { name: "Budi_Mat", followers: 12100, avatar: "", xp: 38000 },
+            { name: "Putri_Ambis", followers: 9800, avatar: "", xp: 25000 },
+            { name: "Arif_WibuKuis", followers: 7500, avatar: "", xp: 18000 },
+            { name: "Dinda_Smart", followers: 6200, avatar: "", xp: 12000 },
+            { name: "Eko_Guru", followers: 5800, avatar: "", xp: 155000 },
+            { name: "Lestari_Panda", followers: 4900, avatar: "", xp: 9500 },
+            { name: "Rizky_Gamer", followers: 3200, avatar: "", xp: 6000 },
+            { name: "Maya_Cantik", followers: 2800, avatar: "", xp: 4500 },
+            { name: "Fajar_Sidiq", followers: 1500, avatar: "", xp: 2200 },
+            { name: "Gita_Kpop", followers: 1100, avatar: "", xp: 1500 },
+            { name: "Hadi_Sejarah", followers: 950, avatar: "", xp: 800 }
+        ];
+
+        let userData = { name: "Player", xp: 0, followers: 0, avatar: "" };
+        let userUid = null;
+        let currentGrade = 'SMP';
+        let currentQuestions = [];
+        let questionIndex = 0;
+        let sessionXP = 0;
+        let canAnswer = true;
+
+        const getRankTitle = (level) => {
+            if (level < 5) return "PELAJAR PEMULA";
+            if (level < 15) return "PELAJAR AMBIS";
+            if (level < 30) return "CENDEKIA MUDA";
+            if (level < 60) return "MASTER PENGETAHUAN";
+            if (level < 100) return "SANG PENAKLUK KUIS";
+            if (level < 500) return "MAHA GURU AKADEMIK";
+            if (level < 1000) return "Dewa Kuis Abadi";
+            return "ENTITAS ILMU TAK TERBATAS 🌌";
+        };
+
+        const initAuth = async () => {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
+        };
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userUid = user.uid;
+                const userDoc = await getDoc(doc(db, 'artifacts', appId, 'users', userUid, 'stats', 'profile'));
+                if (userDoc.exists()) {
+                    userData = userDoc.data();
+                    updateUI();
+                } else {
+                    document.getElementById('name-modal').classList.remove('hidden');
+                }
+                listenMembers();
+            }
+        });
+
+        document.getElementById('file-upload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 150000) {
+                showToast("⚠️ Foto kegedean! Cari yang di bawah 150KB.");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const base64String = event.target.result;
+                userData.avatar = base64String;
+                const previewImg = document.getElementById('preview-img');
+                const placeholder = document.getElementById('preview-placeholder');
+                previewImg.src = base64String;
+                previewImg.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        });
+
+        document.getElementById('start-btn').onclick = async () => {
+            const name = document.getElementById('user-name-input').value.trim();
+            if (name.length < 2) return alert("Nama minimal 2 huruf bos!");
+            userData.name = name;
+            await saveToCloud();
+            document.getElementById('name-modal').classList.add('hidden');
+            updateUI();
+        };
+
+        const saveToCloud = async () => {
+            if (!userUid) return;
+            await setDoc(doc(db, 'artifacts', appId, 'users', userUid, 'stats', 'profile'), userData);
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', userUid), {
+                name: userData.name,
+                followers: userData.followers,
+                avatar: userData.avatar,
+                xp: userData.xp
+            });
+        };
+
+        const listenMembers = () => {
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'members'), (snapshot) => {
+                const members = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if(doc.id !== userUid) members.push(data);
+                });
+                
+                let allPlayers = [{ ...userData, isMe: true }, ...members, ...bots];
+                const seen = new Set();
+                const uniquePlayers = allPlayers.filter(p => {
+                    const duplicate = seen.has(p.name);
+                    seen.add(p.name);
+                    return !duplicate;
+                });
+
+                window.activeMembers = uniquePlayers.sort((a,b) => b.followers - a.followers);
+                document.getElementById('member-count-display').innerText = uniquePlayers.length;
+                if(!document.getElementById('leaderboard-screen').classList.contains('hidden')) renderLeaderboardUI();
+            }, (err) => console.error("Gagal ambil data:", err));
+        };
+
+        window.setGrade = (grade) => {
+            currentGrade = grade;
+            const isSMP = grade === 'SMP';
+            document.getElementById('btn-smp').className = isSMP ? 'py-3 rounded-xl font-bold border-2 border-indigo-500 bg-indigo-500/20 text-white shadow-lg shadow-indigo-500/10' : 'py-3 rounded-xl font-bold border-2 border-slate-700 bg-transparent text-slate-400';
+            document.getElementById('btn-sma').className = !isSMP ? 'py-3 rounded-xl font-bold border-2 border-indigo-500 bg-indigo-500/20 text-white shadow-lg shadow-indigo-500/10' : 'py-3 rounded-xl font-bold border-2 border-slate-700 bg-transparent text-slate-400';
+        };
+
+        window.startQuiz = (cat) => {
+            currentQuestions = [...quizData[currentGrade][cat]].sort(() => Math.random() - 0.5).slice(0, 5);
+            questionIndex = 0; sessionXP = 0;
+            document.getElementById('menu-screen').classList.add('hidden');
+            document.getElementById('quiz-screen').classList.remove('hidden');
+            document.getElementById('quiz-info').innerText = `${currentGrade} | ${cat.toUpperCase()}`;
+            showQuestion();
+        };
+
+        const showQuestion = () => {
+            canAnswer = true;
+            document.getElementById('next-btn').classList.add('hidden');
+            document.getElementById('fail-btn').classList.add('hidden');
+            document.getElementById('feedback').classList.add('hidden');
+            const q = currentQuestions[questionIndex];
+            document.getElementById('question-text').innerText = q.q;
+            document.getElementById('progress-text').innerText = `SOAL: ${questionIndex + 1}/5`;
+            document.getElementById('progress-bar').style.width = `${(questionIndex / 5) * 100}%`;
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+            q.a.forEach((opt, idx) => {
+                const b = document.createElement('button');
+                b.className = 'option-btn w-full p-4 text-left rounded-xl font-medium text-sm';
+                b.innerText = opt;
+                b.onclick = () => check(idx, b);
+                container.appendChild(b);
+            });
+        };
+
+        const check = (idx, btn) => {
+            if(!canAnswer) return;
+            canAnswer = false;
+            const q = currentQuestions[questionIndex];
+            const feedback = document.getElementById('feedback');
+            if(idx === q.c) {
+                btn.classList.add('correct');
+                sessionXP += 250;
+                feedback.className = "mt-8 p-4 rounded-xl text-center font-bold text-lg bg-green-500/20 text-green-400 border border-green-500/30";
+                feedback.innerText = "MANTAP! +250 XP ✨";
+                feedback.classList.remove('hidden');
+                document.getElementById('next-btn').classList.remove('hidden');
+            } else {
+                btn.classList.add('wrong');
+                document.getElementById('app').classList.add('shake');
+                setTimeout(() => document.getElementById('app').classList.remove('shake'), 500);
+                feedback.className = "mt-8 p-4 rounded-xl text-center font-bold text-lg bg-red-500/20 text-red-400 border border-red-500/30";
+                feedback.innerText = "YAH SALAH! 💀";
+                feedback.classList.remove('hidden');
+                document.getElementById('fail-btn').classList.remove('hidden');
+                document.getElementById('fail-btn').onclick = resetApp;
+            }
+        };
+
+        document.getElementById('next-btn').onclick = () => {
+            if(questionIndex < 4) { questionIndex++; showQuestion(); }
+            else {
+                const oldLevel = Math.floor(userData.xp / 1000) + 1;
+                userData.xp += sessionXP;
+                const newLevel = Math.floor(userData.xp / 1000) + 1;
+                
+                if (newLevel > oldLevel) {
+                    showToast(`🆙 NAIK LEVEL! Sekarang kamu Level ${newLevel}!`);
+                }
+
+                document.getElementById('session-xp').innerText = `+${sessionXP}`;
+                document.getElementById('quiz-screen').classList.add('hidden');
+                document.getElementById('result-screen').classList.remove('hidden');
+                saveToCloud(); updateUI();
+            }
+        };
+
+        window.openLeaderboard = () => {
+            document.getElementById('menu-screen').classList.add('hidden');
+            document.getElementById('leaderboard-screen').classList.remove('hidden');
+            renderLeaderboardUI();
+        };
+
+        function renderLeaderboardUI() {
+            const list = document.getElementById('leaderboard-list');
+            list.innerHTML = '';
+            const members = window.activeMembers || [];
+            members.forEach((p, i) => {
+                const isMe = p.name === userData.name;
+                const isFirst = i === 0;
+                const level = Math.floor(p.xp / 1000) + 1;
+                const item = document.createElement('div');
+                item.className = `p-4 rounded-xl flex justify-between items-center mb-3 transition-all duration-300 ${isMe ? 'bg-indigo-600/30 border-indigo-500/50 border scale-[1.02]' : 'bg-slate-900/50 border border-white/5'}`;
+                
+                const avatarHtml = p.avatar 
+                    ? `<img src="${p.avatar}" class="w-full h-full object-cover">` 
+                    : `<span class="text-xl">👤</span>`;
+
+                item.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <span class="text-sm font-black w-8 ${isFirst ? 'gold-rank' : 'text-slate-500'}">#${i+1}</span>
+                        <div class="h-10 w-10 rounded-full bg-slate-800 flex items-center justify-center shadow-inner border border-white/5 overflow-hidden">
+                            ${avatarHtml}
+                        </div>
+                        <div>
+                            <p class="font-bold text-sm ${isFirst ? 'text-amber-400' : 'text-white'}">${isFirst ? '👑 ' : ''}${p.name} ${isMe ? '<span class="text-[10px] text-indigo-300 ml-1">(SAYA)</span>' : ''}</p>
+                            <p class="text-[9px] ${level >= 100 ? 'level-god font-black' : 'text-slate-500 font-bold'} uppercase tracking-widest">Level ${level}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-black text-indigo-400 text-sm">${p.followers.toLocaleString()}</p>
+                        <p class="text-[8px] text-slate-500 uppercase font-bold">Followers</p>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        window.openShop = () => {
+            document.getElementById('menu-screen').classList.add('hidden');
+            document.getElementById('shop-screen').classList.remove('hidden');
+        };
+
+        window.buyFollowers = async (count, price) => {
+            if(userData.xp >= price) {
+                userData.xp -= price; userData.followers += count;
+                await saveToCloud(); updateUI();
+                showToast(`🚀 +${count} Followers Berhasil Ditambah!`);
+            } else { showToast("❌ XP Kamu Belum Cukup!"); }
+        };
+
+        const updateUI = () => {
+            const level = Math.floor(userData.xp / 1000) + 1;
+            document.getElementById('xp-display').innerText = userData.xp.toLocaleString();
+            document.getElementById('followers-count').innerText = userData.followers.toLocaleString();
+            document.getElementById('display-user-name').innerText = userData.name;
+            
+            const levelEl = document.getElementById('level-display');
+            levelEl.innerText = level;
+            if (level >= 100) levelEl.classList.add('level-god');
+            
+            document.getElementById('rank-title').innerText = getRankTitle(level);
+            
+            if(userData.avatar) {
+                const hImg = document.getElementById('header-img');
+                const hPlaceholder = document.getElementById('header-placeholder');
+                hImg.src = userData.avatar;
+                hImg.classList.remove('hidden');
+                hPlaceholder.classList.add('hidden');
+            }
+        };
+
+        const showToast = (msg) => {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            t.classList.remove('hidden');
+            setTimeout(() => t.classList.add('hidden'), 2500);
+        };
+
+        window.resetApp = () => {
+            document.getElementById('quiz-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('shop-screen').classList.add('hidden');
+            document.getElementById('leaderboard-screen').classList.add('hidden');
+            document.getElementById('menu-screen').classList.remove('hidden');
+            updateUI();
+        };
+
+        initAuth();
+    </script>
+</body>
+</html>
